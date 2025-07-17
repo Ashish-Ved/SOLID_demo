@@ -1,0 +1,182 @@
+These principles are the foundation of writing clean, maintainable, and scalable object-oriented code.
+
+First: What Are SOLID Principles?
+SOLID is an acronym that represents five principles of object-oriented design:
+
+Principle	Description
+S - Single Responsibility	A class should have one and only one reason to change. Break large classes into smaller, focused ones.
+	
+O - Open/Closed	Software entities (classes, functions, etc.) should be open for extension but closed for modification. Use inheritance or composition to extend functionality. Understand abc module (Abstract Base Class)
+	
+L - Liskov Substitution	Subtypes must be substitutable for their base types without breaking the application. Create child classes that can substitute parent classes without errors.
+	
+I - Interface Segregation	No client should be forced to depend on interfaces it does not use. Apply to interfaces or abstract classes — split large interfaces into smaller ones.
+	
+D - Dependency Inversion	High-level modules should not depend on low-level modules. Both should depend on abstractions. Learn Dependency Injection. Understand how high-level modules depend on abstractions (e.g., interfaces or abstract classes).
+
+
+1. S – Single Responsibility Principle (SRP): A class should have one and only one reason to change. Break large classes into smaller, focused ones.
+
+ Before (One class doing too much):
+class Order:
+    def __init__(self, items):
+        self.items = items  # list of (name, price)
+ 
+    def calculate_total(self):
+        return sum(item[1] for item in self.items)
+ 
+    def save_to_db(self):
+        print("Saving to database...")
+ 
+    def send_email(self):
+        print("Sending email confirmation...")
+
+🔴 Problem: This class calculates total, saves to DB, and sends email — multiple responsibilities.
+
+After (SRP Applied):
+class Order:
+    def __init__(self, items):
+        self.items = items
+ 
+    def calculate_total(self):
+        return sum(item[1] for item in self.items)
+ 
+class OrderRepository:
+    def save(self, order):
+        print("Saving order to database...")
+ 
+class EmailSender:
+    def send_email(self, order):
+        print("Sending email for order...")
+🔵 Now: Each class has one reason to change — clean and focused.
+
+2. O – Open/Closed Principle (OCP): Software entities (classes, functions, etc.) should be open for extension but closed for modification. Use inheritance or composition to extend functionality. Understand abc module (Abstract Base Class)
+ Before (Modifying to add discount logic):
+class PriceCalculator:
+    def calculate_price(self, items, discount_type):
+        total = sum(item[1] for item in items)
+        if discount_type == "fixed":
+            total -= 10
+        elif discount_type == "percent":
+            total *= 0.9
+        return total
+🔴 Problem: Adding new discounts requires modifying the class.
+
+After (OCP Applied):
+from abc import ABC, abstractmethod
+class DiscountStrategy(ABC):
+    @abstractmethod
+    def apply(self, total):
+        pass
+ 
+class FixedDiscount(DiscountStrategy):
+    def apply(self, total):
+        return total - 10
+ 
+class PercentageDiscount(DiscountStrategy):
+    def apply(self, total):
+        return total * 0.9
+ 
+ 
+class PriceCalculator:
+    def calculate_price(self, items, discount_strategy: DiscountStrategy):
+        total = sum(item[1] for item in items)
+        return discount_strategy.apply(total)
+🔵 New discount types? Just extend, don’t modify.
+
+3. L – Liskov Substitution Principle (LSP): Subtypes must be substitutable for their base types without breaking the application. Create child classes that can substitute parent classes without errors.
+If class B is a subclass of class A, then we should be able to use objects of class B in place of objects of class A without altering the correctness of the program.
+In simple terms:
+	Subclasses should behave like the parent class without breaking the expected behavior.
+
+Before (Subclass breaks behavior):
+
+class Notification:
+    def send(self):
+        print("Sending generic notification")
+ 
+class SMSNotification(Notification):
+    def send(self):
+        raise NotImplementedError("SMS not available")
+ Subclass should be substitutable, but SMSNotification throws error — violates LSP.
+
+ After (LSP Applied):
+class Notification:
+    def send(self):
+        raise NotImplementedError("Use specific notification type")
+ 
+ 
+class EmailNotification(Notification):
+    def send(self):
+        print("Email sent successfully")
+ 
+class SMSNotification(Notification):
+    def send(self):
+        print("SMS sent successfully")
+
+Now all subclasses can be used interchangeably.
+
+ 4. I – Interface Segregation Principle (ISP): No client should be forced to depend on interfaces it does not use. Apply to interfaces or abstract classes — split large interfaces into smaller ones.
+
+ Before (One interface forcing unused methods):
+class NotificationService:
+    def send_email(self):
+        pass
+ 
+    def send_sms(self):
+        pass
+ 
+ 
+class EmailOnlyService(NotificationService):
+    def send_email(self):
+        print("Email sent")
+ 
+    def send_sms(self):
+        pass  # Not needed
+ Violates ISP — EmailOnlyService is forced to implement send_sms.
+
+After (ISP Applied using composition):
+class EmailSender:
+    def send_email(self):
+        print("Email sent")
+ 
+class SMSSender:
+    def send_sms(self):
+        print("SMS sent")
+
+🔵 Smaller, focused interfaces.
+
+ 5. D – Dependency Inversion Principle (DIP): High-level modules should not depend on low-level modules. Both should depend on abstractions. Learn Dependency Injection. Understand how high-level modules depend on abstractions (e.g., interfaces or abstract classes).
+
+ Before (High-level depends on low-level):
+class EmailService:
+    def send(self, message):
+        print("Email sent:", message)
+ 
+ 
+class NotificationManager:
+    def __init__(self):
+        self.service = EmailService()  # Tightly coupled
+ 
+    def notify(self, message):
+        self.service.send(message)
+
+🔴 Can’t swap EmailService with other service easily.
+
+After (DIP Applied):
+class NotificationSender:
+    def send(self, message):
+        pass
+ 
+class EmailService(NotificationSender):
+    def send(self, message):
+        print("Email sent:", message)
+ 
+class NotificationManager:
+    def __init__(self, sender: NotificationSender):
+        self.sender = sender
+ 
+    def notify(self, message):
+        self.sender.send(message)
+
+🔵 High-level depends on abstraction, not concrete classes.
